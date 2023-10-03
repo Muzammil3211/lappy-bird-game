@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Bird Game</title>
+    <style>
+        body, html {
+            margin: 0;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            background-color: #70c5ce;
+        }
+
+        .credits {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            color: white;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Bird image element -->
+    <img id="birdImage" src="file:///C:/Users/A%20M%20D/Downloads/pngwing.com%20(6).png" style="display: none;">
+
+    <canvas id="flappyBirdCanvas"></canvas>
+    <div class="credits">Created by Muzammil</div>
+    <script>
+        const canvas = document.getElementById('flappyBirdCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        // Call resizeCanvas() initially and whenever the window is resized
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Bird variables
+        const bird = {
+            x: 50,
+            y: canvas.height / 2 - 25,
+            width: 50,
+            height: 50,
+            velocityY: 0,
+            gravity: 0.2, // Decreased gravity for slower fall
+            jumpStrength: -7, // Decreased jump strength for shorter jumps
+        };
+
+        // Pipe variables
+        const pipeGap = 200;
+        const pipeWidth = 50;
+        const pipes = [];
+        let pipeX = canvas.width;
+
+        // Score
+        let score = 0;
+
+        // Game over flag
+        let gameOver = false;
+
+        // Bird image element
+        const birdImage = document.getElementById('birdImage');
+        
+        // Start the game loop after the bird image is loaded
+        birdImage.onload = function() {
+            draw();
+        };
+
+        function resetGame() {
+            bird.y = canvas.height / 2 - 25;
+            bird.velocityY = 0;
+            pipes.length = 0;
+            pipeX = canvas.width;
+            score = 0;
+            gameOver = false;
+        }
+
+        function drawBird() {
+            // Use the bird image instead of drawing a square
+            ctx.drawImage(birdImage, bird.x, bird.y, bird.width, bird.height);
+        }
+
+        function drawPipe(x, topHeight, bottomHeight, isGreen) {
+            const pipeColor = isGreen ? '#7FFF00' : 'purple';
+
+            ctx.fillStyle = pipeColor;
+            ctx.fillRect(x, 0, pipeWidth, topHeight);
+            ctx.fillRect(x, canvas.height - bottomHeight, pipeWidth, bottomHeight);
+        }
+
+        function movePipes() {
+            for (let i = 0; i < pipes.length; i++) {
+                const p = pipes[i];
+                p.x -= 2; // Slower pipe movement
+            }
+
+            // Remove off-screen pipes
+            pipes.filter((p) => p.x > -pipeWidth);
+
+            // Generate new pipes
+            if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 300) {
+                const topHeight = Math.random() * (canvas.height - pipeGap - 100);
+                const bottomHeight = canvas.height - topHeight - pipeGap;
+                const isGreen = Math.random() < 0.5; // Randomly choose between green and purple
+                pipes.push({ x: canvas.width, topHeight, bottomHeight, isGreen });
+            }
+        }
+
+        function draw() {
+            // Clear the canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (!gameOver) {
+                // Draw bird
+                drawBird();
+
+                // Update bird position
+                bird.velocityY += bird.gravity;
+                bird.y += bird.velocityY;
+
+                // Move pipes
+                movePipes();
+
+                for (let i = 0; i < pipes.length; i++) {
+                    const p = pipes[i];
+                    drawPipe(p.x, p.topHeight, p.bottomHeight, p.isGreen);
+
+                    // Check for collisions
+                    if (
+                        bird.x + bird.width > p.x &&
+                        bird.x < p.x + pipeWidth &&
+                        (bird.y < p.topHeight || bird.y + bird.height > canvas.height - p.bottomHeight)
+                    ) {
+                        gameOver = true;
+                    }
+
+                    // Score increment
+                    if (bird.x > p.x + pipeWidth && !p.scored) {
+                        score++;
+                        p.scored = true;
+                    }
+                }
+
+                // Draw score
+                ctx.fillStyle = 'black';
+                ctx.font = '30px Arial';
+                ctx.fillText(`Score: ${score}`, 10, 30);
+
+                // Check for game over
+                if (bird.y < 0 || bird.y + bird.height > canvas.height) {
+                    gameOver = true;
+                }
+
+                // Request animation frame
+                requestAnimationFrame(draw);
+            } else {
+                // Game over screen
+                ctx.fillStyle = 'red';
+                ctx.font = '50px Arial';
+                ctx.fillText('Game Over', canvas.width / 2 - 120, canvas.height / 2 - 50);
+                ctx.fillText(`Score: ${score}`, canvas.width / 2 - 50, canvas.height / 2 + 20);
+                ctx.fillText('Retry the Game', canvas.width / 2 - 90, canvas.height / 2 + 90);
+
+                // Handle click to retry
+                canvas.addEventListener('click', function () {
+                    resetGame();
+                    draw();
+                });
+            }
+        }
+
+        // Handle spacebar press for jumping
+        window.addEventListener('keydown', function (event) {
+            if (event.keyCode === 32 && !gameOver) {
+                bird.velocityY = bird.jumpStrength;
+            }
+        });
+
+        // Start the game loop
+        draw();
+    </script>
+</body>
+</html>
